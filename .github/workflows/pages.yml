@@ -1,0 +1,49 @@
+# Publica el juego en GitHub Pages cada vez que se sube algo a main.
+# La clave de Google se guarda como secret del repositorio (GOOGLE_MAPS_KEY)
+# y se escribe en config.js solo al publicar: nunca queda en el código.
+name: Publicar en GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Crear config.js con la clave
+        env:
+          GOOGLE_MAPS_KEY: ${{ secrets.GOOGLE_MAPS_KEY }}
+        run: |
+          if [ -z "$GOOGLE_MAPS_KEY" ]; then
+            echo "::warning::Falta el secret GOOGLE_MAPS_KEY: el juego se publica sin vista de calle."
+          fi
+          printf "window.GOOGLE_MAPS_KEY = '%s';\n" "$GOOGLE_MAPS_KEY" > config.js
+
+      - name: Preparar archivos del sitio
+        run: |
+          mkdir _sitio
+          cp index.html editor.html juego.js lugares.js style.css config.js _sitio/
+          cp -r fotos _sitio/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _sitio
+      - id: deploy
+        uses: actions/deploy-pages@v4

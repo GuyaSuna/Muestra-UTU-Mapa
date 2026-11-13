@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editor de lugares</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    body { display: grid; grid-template-columns: 1fr 380px; }
+    #mapa { height: 100%; }
+    aside { padding: 16px; overflow-y: auto; background: #f4f7f9; }
+    h1 { font-size: 1.3rem; margin: 0 0 8px; }
+    p { color: #555; font-size: .9rem; }
+    label { display: block; margin: 8px 0 2px; font-weight: 600; font-size: .9rem; }
+    input, textarea { width: 100%; padding: 6px 8px; font: inherit; }
+    textarea#salida { height: 260px; font-family: ui-monospace, monospace; font-size: .8rem; }
+    button { margin-top: 10px; padding: 8px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+    .coords { font-family: ui-monospace, monospace; color: #1565c0; }
+    .capas { margin: 8px 0; }
+    @media (max-width: 760px) { body { grid-template-columns: 1fr; grid-template-rows: 55% 45%; } }
+  </style>
+</head>
+<body>
+  <div id="mapa"></div>
+  <aside>
+    <h1>Editor de lugares</h1>
+    <p>Pegá el link de Street View (o hacé clic en el mapa), completá los datos y tocá <b>Agregar</b>.
+      Al final copiá el texto de abajo y reemplazá el contenido de <code>lugares.js</code>.</p>
+    <div class="capas">
+      <label style="display:inline"><input type="checkbox" id="sat" style="width:auto"> Ver satélite</label>
+    </div>
+    <label for="sv">Link de Street View</label>
+    <input id="sv" placeholder="https://www.google.com/maps/@-34.43,-57.44,3a,75y,...">
+    <p id="sv-info" style="margin:4px 0"></p>
+    <div>Punto: <span id="coords" class="coords">(hacé clic en el mapa)</span></div>
+    <label for="nombre">Nombre *</label>
+    <input id="nombre" placeholder="Ej: Plaza principal">
+    <label for="desc">Descripción</label>
+    <input id="desc" placeholder="Se muestra al revelar el lugar">
+    <label for="foto">Foto (opcional)</label>
+    <input id="foto" placeholder="fotos/plaza.jpg">
+    <label for="pista">Pista (opcional)</label>
+    <input id="pista" placeholder="Ej: Cerca del centro">
+    <button id="agregar">Agregar</button>
+    <label for="salida">Contenido de lugares.js</label>
+    <textarea id="salida" readonly></textarea>
+    <button id="copiar">Copiar</button>
+  </aside>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="lugares.js"></script>
+  <script>
+    const LIMITES = L.latLngBounds([-34.455, -57.475], [-34.405, -57.385]);
+    const lugares = LUGARES.slice();
+    const mapa = L.map('mapa', { maxBounds: LIMITES.pad(0.05), minZoom: 14 }).fitBounds(LIMITES);
+    const osm = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 19, attribution: '© Esri, OpenStreetMap' }).addTo(mapa);
+    const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 19, attribution: 'Imágenes © Esri' });
+    document.getElementById('sat').addEventListener('change', (e) => {
+      if (e.target.checked) { mapa.removeLayer(osm); sat.addTo(mapa); }
+      else { mapa.removeLayer(sat); osm.addTo(mapa); }
+    });
+
+    const capaLugares = L.layerGroup().addTo(mapa);
+    let punto = null, marca = null;
+
+    function dibujar() {
+      capaLugares.clearLayers();
+      lugares.forEach((l, i) => {
+        L.circleMarker([l.lat, l.lng], { radius: 7, color: '#2e7d32', fillOpacity: .8 })
+          .bindTooltip(l.nombre)
+          .bindPopup(() => {
+            const div = document.createElement('div');
+            div.textContent = l.nombre + ' ';
+            const b = document.createElement('button');
+            b.textContent = 'Borrar';
+            b.onclick = () => { lugares.splice(i, 1); dibujar(); };
+            div.appendChild(b);
+            return div;
+          })
+          .addTo(capaLugares);
+      });
+      const txt = lugares.map((l) => {
+        const o = { nombre: l.nombre, lat: +(+l.lat).toFixed(5), lng: +(+l.lng).toFixed(5) };
+        ['descripcion', 'foto', 'pista', 'zoom', 'heading', 'pitch', 'fov', 'desde', 'streetview']
+          .forEach((k) => { if (l[k] || l[k] === 0) o[k] = l[k]; });
+        return '  ' + JSON.stringify(o).replace(/"(\w+)":/g, '$1: ').replace(/,(?=\w+: )/g, ', ');
+      }).join(',\n');
+      document.getElementById('salida').value =
+        '// Lugares del juego. Generado con editor.html\nconst LUGARES = [\n' + txt + ',\n];\n';
+    }
+
+    function ponerPunto(latlng) {
+      punto = L.latLng(latlng);
+      if (marca) marca.setLatLng(punto); else marca = L.marker(punto).addTo(mapa);
+      document.getElementById('coords').textContent = punto.lat.toFixed(5) + ', ' + punto.lng.toFixed(5);
+    }
+
+    mapa.on('click', (e) => ponerPunto(e.latlng));
+
+    // El punto de la respuesta es donde está parada la cámara de Street View
+    document.getElementById('sv').addEventListener('input', (e) => {
+      const info = document.getElementById('sv-info');
+      const m = e.target.value.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?),3a,/);
+      if (!e.target.value.trim()) { info.textContent = ''; return; }
+      if (!m) { info.textContent = '⚠️ Ese link no es de Street View. Copialo estando en la vista de calle.'; return; }
+      const ll = [+m[1], +m[2]];
+      if (!LIMITES.contains(ll)) { info.textContent = '⚠️ Ese punto queda fuera de Juan Lacaze.'; return; }
+      info.textContent = '✔ Punto tomado del link.';
+      ponerPunto(ll);
+      mapa.setView(ll, 17);
+    });
+
+    document.getElementById('agregar').addEventListener('click', () => {
+      const v = (id) => document.getElementById(id).value.trim();
+      if (!punto) return alert('Primero pegá un link de Street View o hacé clic en el mapa.');
+      if (!v('nombre')) return alert('Poné un nombre.');
+      lugares.push({ nombre: v('nombre'), lat: punto.lat, lng: punto.lng,
+        descripcion: v('desc'), foto: v('foto'), pista: v('pista'), streetview: v('sv') });
+      ['nombre', 'desc', 'foto', 'pista', 'sv'].forEach((id) => document.getElementById(id).value = '');
+      document.getElementById('sv-info').textContent = '';
+      mapa.removeLayer(marca); marca = null; punto = null;
+      document.getElementById('coords').textContent = '(hacé clic en el mapa)';
+      dibujar();
+    });
+
+    document.getElementById('copiar').addEventListener('click', () => {
+      const t = document.getElementById('salida');
+      t.select();
+      navigator.clipboard?.writeText(t.value).catch(() => document.execCommand('copy'));
+    });
+
+    dibujar();
+  </script>
+</body>
+</html>

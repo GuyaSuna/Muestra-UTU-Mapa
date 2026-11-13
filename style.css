@@ -1,0 +1,181 @@
+:root {
+  --fondo: #0f2a3a;
+  --tarjeta: #ffffff;
+  --texto: #1b2b34;
+  --suave: #5b6f7a;
+  --acento: #1e88e5;
+  --acento-osc: #1565c0;
+  --ok: #2e7d32;
+  --radio: 14px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+}
+
+.pantalla { display: none; height: 100%; }
+.pantalla.activa { display: flex; }
+
+/* ---------- Inicio / final ---------- */
+#inicio, #final {
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: linear-gradient(160deg, #0f2a3a, #1d5a7a);
+}
+
+.tarjeta {
+  background: var(--tarjeta);
+  border-radius: var(--radio);
+  padding: 28px;
+  max-width: 460px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0,0,0,.35);
+  text-align: center;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.tarjeta h1 { margin: 0 0 4px; font-size: 2rem; }
+.sub { margin: 0 0 16px; color: var(--suave); }
+
+.opcion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0;
+  color: var(--suave);
+}
+.opcion select { font-size: 1rem; padding: 4px 8px; }
+
+.btn {
+  background: var(--acento);
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  padding: 12px 26px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.btn:hover:not(:disabled) { background: var(--acento-osc); }
+.btn:disabled { background: #90a4ae; cursor: not-allowed; }
+
+.record { color: var(--suave); font-size: .9rem; min-height: 1em; }
+
+.total { font-size: 1.6rem; margin: 8px 0; }
+.lista { text-align: left; padding-left: 22px; color: var(--suave); }
+.lista li { margin: 4px 0; }
+.lista b { color: var(--texto); }
+
+/* ---------- Juego ---------- */
+#juego { flex-direction: column; position: relative; }
+
+.barra {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #0b1f2b;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.contenido {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 0;
+}
+
+.panel-imagen, .panel-mapa { position: relative; min-height: 0; }
+
+.vista, .mapa, .foto {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* z-index por encima de los paneles de Leaflet (400) del satélite de respaldo */
+.foto { object-fit: cover; display: none; background: #000; z-index: 450; }
+.foto.visible { display: block; }
+
+/* Vista de calle (Google Street View) por encima del respaldo */
+.calle { position: absolute; inset: 0; z-index: 460; background: #111; }
+.calle.oculto { display: none; }
+/* Deja la cámara fija; deja libre la franja de abajo con los avisos legales de Google */
+.bloqueo { position: absolute; left: 0; right: 0; top: 0; bottom: 28px; z-index: 470; }
+.cargando {
+  position: absolute;
+  inset: 0;
+  z-index: 480;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  background: rgba(11, 31, 43, .85);
+  color: #fff;
+  font-size: 1.1rem;
+}
+.cargando.oculto { display: none; }
+
+.aviso { color: #b26a00; font-size: .9rem; min-height: 1em; }
+
+.pista {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 500;
+  background: rgba(0,0,0,.6);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: .9rem;
+  max-width: calc(100% - 24px);
+}
+.pista:empty { display: none; }
+
+.btn-flotante {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 500;
+  box-shadow: 0 4px 16px rgba(0,0,0,.35);
+  white-space: nowrap;
+}
+
+.resultado {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: var(--tarjeta);
+  border-radius: var(--radio);
+  padding: 18px 24px;
+  width: min(520px, calc(100% - 32px));
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,.4);
+}
+.resultado h2 { margin: 0 0 6px; }
+.resultado p { margin: 6px 0; color: var(--suave); }
+.res-datos { font-size: 1.15rem; color: var(--texto) !important; }
+.res-datos b { color: var(--ok); }
+.oculto { display: none; }
+
+/* Imagen satelital: sin controles para que no se pueda "hacer trampa" moviéndose */
+.vista .leaflet-control-container .leaflet-top { display: none; }
+
+/* ---------- Celular ---------- */
+@media (max-width: 760px) {
+  .contenido { grid-template-columns: 1fr; grid-template-rows: 45% 55%; }
+}

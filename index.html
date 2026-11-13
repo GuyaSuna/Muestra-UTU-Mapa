@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>¿Dónde estoy? Juan Lacaze</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Pantalla de inicio -->
+  <section id="inicio" class="pantalla activa">
+    <div class="tarjeta">
+      <h1>¿Dónde estoy?</h1>
+      <p class="sub">Juan Lacaze · Colonia · Uruguay</p>
+      <p>Aparecés parado en algún lugar de la ciudad. Mirá a tu alrededor y marcá en el mapa dónde creés que estás.
+        Cuanto más cerca, más puntos.</p>
+      <label class="opcion">
+        Modo
+        <select id="opt-modo">
+          <option value="azar" selected>Cualquier calle de la ciudad</option>
+          <option value="lugares">Lugares conocidos</option>
+        </select>
+      </label>
+      <label class="opcion">
+        Rondas
+        <select id="opt-rondas">
+          <option value="5" selected>5</option>
+          <option value="10">10</option>
+          <option value="15">15</option>
+        </select>
+      </label>
+      <label class="opcion">
+        <input type="checkbox" id="opt-girar">
+        Poder girar la cámara (sin caminar)
+      </label>
+      <label class="opcion">
+        <input type="checkbox" id="opt-etiquetas" checked>
+        Mostrar nombres de calles en el mapa
+      </label>
+      <button id="btn-jugar" class="btn">Jugar</button>
+      <p id="aviso" class="aviso"></p>
+      <p id="record" class="record"></p>
+    </div>
+  </section>
+
+  <!-- Pantalla de juego -->
+  <section id="juego" class="pantalla">
+    <header class="barra">
+      <span>Ronda <b id="ronda-n">1</b>/<b id="ronda-total">5</b></span>
+      <span>Puntos <b id="puntos">0</b></span>
+    </header>
+
+    <div class="contenido">
+      <div class="panel-imagen">
+        <div id="vista" class="vista"></div>
+        <img id="foto" class="foto" alt="Foto del lugar">
+        <div id="calle" class="calle"></div>
+        <!-- Capa transparente que deja la cámara fija (se saca si se permite girar) -->
+        <div id="bloqueo" class="bloqueo"></div>
+        <div id="cargando" class="cargando oculto"></div>
+        <div class="pista" id="pista"></div>
+      </div>
+
+      <div class="panel-mapa">
+        <div id="mapa" class="mapa"></div>
+        <button id="btn-adivinar" class="btn btn-flotante" disabled>Marcá un punto en el mapa</button>
+      </div>
+    </div>
+
+    <!-- Resultado de la ronda -->
+    <div id="resultado" class="resultado oculto">
+      <h2 id="res-nombre"></h2>
+      <p id="res-desc"></p>
+      <p class="res-datos"><span id="res-dist"></span> · <b id="res-pts"></b></p>
+      <button id="btn-siguiente" class="btn">Siguiente</button>
+    </div>
+  </section>
+
+  <!-- Pantalla final -->
+  <section id="final" class="pantalla">
+    <div class="tarjeta">
+      <h1>¡Terminaste!</h1>
+      <p class="total"><b id="final-puntos">0</b> / <span id="final-max">0</span> puntos</p>
+      <p id="final-msg"></p>
+      <ol id="final-lista" class="lista"></ol>
+      <button id="btn-otra" class="btn">Jugar de nuevo</button>
+    </div>
+  </section>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="config.js"></script>
+  <script src="lugares.js"></script>
+  <script src="juego.js"></script>
+</body>
+</html>
