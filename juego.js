@@ -293,6 +293,22 @@
     setTimeout(() => { mapa.invalidateSize(); vista.invalidateSize(); iniciarRonda(); }, 0);
   }
 
+  // ---------- Mapa desplegable ----------
+  const mapaAbierto = () => $('panel-mapa').classList.contains('abierto');
+
+  function abrirMapa() {
+    if (!estado.listo) return;
+    $('panel-mapa').classList.add('abierto');
+    $('btn-abrir-mapa').classList.add('oculto');
+    mapa.invalidateSize();
+  }
+
+  function cerrarMapa() {
+    if (estado.adivinado) return;
+    $('panel-mapa').classList.remove('abierto', 'grande');
+    $('btn-abrir-mapa').classList.remove('oculto');
+  }
+
   function limpiarMapa() {
     if (estado.marcador) { mapa.removeLayer(estado.marcador); estado.marcador = null; }
     estado.capasResultado.forEach((c) => mapa.removeLayer(c));
@@ -304,6 +320,7 @@
     limpiarMapa();
     estado.adivinado = false;
     estado.listo = false;
+    cerrarMapa();
     estado.ronda = null;
     $('ronda-n').textContent = estado.actual + 1;
     $('puntos').textContent = estado.puntos;
@@ -381,7 +398,15 @@
     }).addTo(mapa).bindTooltip('Estabas acá', { permanent: true, direction: 'top', offset: [0, -10] });
     const linea = L.polyline([elegido, real], { color: '#e53935', dashArray: '6 8', weight: 3 }).addTo(mapa);
     estado.capasResultado.push(marcaReal, linea);
-    mapa.fitBounds(L.latLngBounds([elegido, real]).pad(0.4), { maxZoom: 17 });
+    // Agrandamos el mapa a pantalla completa y, cuando termina la animación, encuadramos
+    // los dos puntos dejando lugar abajo para la tarjeta del resultado
+    $('panel-mapa').classList.add('abierto', 'grande');
+    setTimeout(() => {
+      mapa.invalidateSize();
+      mapa.fitBounds(L.latLngBounds([elegido, real]), {
+        maxZoom: 17, paddingTopLeft: [60, 60], paddingBottomRight: [60, 230],
+      });
+    }, 250);
 
     $('btn-adivinar').classList.add('oculto');
     $('res-nombre').textContent = r.nombre;
@@ -462,10 +487,17 @@
   $('btn-jugar').addEventListener('click', empezar);
   $('btn-adivinar').addEventListener('click', adivinar);
   $('btn-siguiente').addEventListener('click', siguiente);
+  $('btn-abrir-mapa').addEventListener('click', abrirMapa);
+  $('btn-cerrar-mapa').addEventListener('click', cerrarMapa);
   $('btn-otra').addEventListener('click', () => { mostrarPantalla('inicio'); mostrarRecord(); });
+  // Enter: abre el mapa → confirma → siguiente ronda.  Esc: vuelve a la calle.
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter' || !$('juego').classList.contains('activa')) return;
-    if (!estado.adivinado) adivinar(); else siguiente();
+    if (!$('juego').classList.contains('activa')) return;
+    if (e.key === 'Escape') { cerrarMapa(); return; }
+    if (e.key !== 'Enter') return;
+    if (estado.adivinado) siguiente();
+    else if (!mapaAbierto()) abrirMapa();
+    else adivinar();
   });
 
   mostrarRecord();

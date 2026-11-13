@@ -60,9 +60,12 @@
         <div id="bloqueo" class="bloqueo"></div>
         <div id="cargando" class="cargando oculto"></div>
         <div class="pista" id="pista"></div>
+        <button id="btn-abrir-mapa" class="btn btn-flotante">🗺️ Marcar en el mapa</button>
       </div>
 
-      <div class="panel-mapa">
+      <!-- El mapa aparece encima de la vista solo cuando se toca el botón -->
+      <div id="panel-mapa" class="panel-mapa">
+        <button id="btn-cerrar-mapa" class="btn-cerrar" title="Volver a la calle (Esc)">✕ Volver a la calle</button>
         <div id="mapa" class="mapa"></div>
         <button id="btn-adivinar" class="btn btn-flotante" disabled>Marcá un punto en el mapa</button>
       </div>

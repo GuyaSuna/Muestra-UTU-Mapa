@@ -90,12 +90,51 @@ html, body {
 
 .contenido {
   flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  position: relative;
   min-height: 0;
 }
 
-.panel-imagen, .panel-mapa { position: relative; min-height: 0; }
+/* La vista de calle ocupa toda la pantalla */
+.panel-imagen { position: absolute; inset: 0; }
+
+/* El mapa flota encima, abajo a la derecha, y se abre con un botón.
+   Se oculta con visibility (no display) para que Leaflet conserve su tamaño. */
+.panel-mapa {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: min(760px, calc(100% - 32px));
+  height: min(560px, calc(100% - 32px));
+  z-index: 900;
+  border-radius: var(--radio);
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,.5);
+  background: #ddd;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity .2s, transform .2s, visibility .2s;
+}
+.panel-mapa.abierto { visibility: visible; opacity: 1; transform: none; }
+/* Al revelar la respuesta el mapa ocupa toda la pantalla */
+.panel-mapa.grande { right: 0; bottom: 0; width: 100%; height: 100%; border-radius: 0; }
+.panel-mapa.grande .btn-cerrar { display: none; }
+
+.btn-cerrar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: #fff;
+  color: var(--texto);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+.btn-cerrar:hover { background: #eef3f6; }
 
 .vista, .mapa, .foto {
   position: absolute;
@@ -177,5 +216,6 @@ html, body {
 
 /* ---------- Celular ---------- */
 @media (max-width: 760px) {
-  .contenido { grid-template-columns: 1fr; grid-template-rows: 45% 55%; }
+  /* En celular el mapa ocupa toda la pantalla cuando se abre */
+  .panel-mapa { right: 0; bottom: 0; width: 100%; height: 100%; border-radius: 0; }
 }

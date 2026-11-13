@@ -60,7 +60,9 @@ Configuración (una sola vez):
    nombre `GOOGLE_MAPS_KEY`, valor: la clave.
 2. *Settings → Pages → Build and deployment → Source:* **GitHub Actions**.
 3. En Google Cloud, en la clave, agregá a los sitios web permitidos:
-   `https://guyasuna.github.io/Muestra-UTU-Mapa/*`
+   `https://guyasuna.github.io/*`
+   (sin la ruta del repositorio: el navegador solo le informa a Google el dominio, así que
+   `https://guyasuna.github.io/Muestra-UTU-Mapa/*` da el error `RefererNotAllowedMapError`).
 
 ## Agregar lugares conocidos
 
