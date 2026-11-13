@@ -40,7 +40,11 @@
       </label>
       <button id="btn-jugar" class="btn">Jugar</button>
       <p id="aviso" class="aviso"></p>
-      <p id="record" class="record"></p>
+      <div id="bloque-tabla-inicio" class="oculto">
+        <h2 class="titulo-tabla">Mejores puntajes</h2>
+        <div id="tabla-inicio"></div>
+        <button id="btn-borrar-puntajes" class="btn-texto">Borrar puntajes</button>
+      </div>
     </div>
   </section>
 
@@ -87,7 +91,22 @@
       <p class="total"><b id="final-puntos">0</b> / <span id="final-max">0</span> puntos</p>
       <p id="final-msg"></p>
       <ol id="final-lista" class="lista"></ol>
+
+      <!-- Guardar el puntaje con iniciales, estilo arcade -->
+      <form id="form-iniciales" class="form-iniciales" autocomplete="off">
+        <label for="iniciales">Poné tus iniciales</label>
+        <div class="fila-iniciales">
+          <input id="iniciales" maxlength="3" placeholder="AAA" aria-label="Iniciales (hasta 3 letras)">
+          <button type="submit" class="btn">Guardar</button>
+        </div>
+      </form>
+      <p id="guardado" class="guardado oculto"></p>
+
+      <h2 class="titulo-tabla">Mejores puntajes</h2>
+      <div id="tabla-final"></div>
+
       <button id="btn-otra" class="btn">Jugar de nuevo</button>
+      <p class="creditos">Juego creado por Nahuel Pages</p>
     </div>
   </section>
 

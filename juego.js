@@ -7,7 +7,7 @@
   const CENTRO = [-34.432, -57.440];
   const PUNTOS_MAX = 1000;
   const SEPARACION_MIN = 250; // metros entre rondas de una misma partida
-  const CLAVE_RECORD = 'donde-estoy-jl-record';
+  const CLAVE_PUNTAJES = 'donde-estoy-jl-puntajes';
   const CLAVE_GOOGLE = (window.GOOGLE_MAPS_KEY || '').trim();
 
   const $ = (id) => document.getElementById(id);
@@ -25,6 +25,7 @@
     adivinado: false,
     listo: false,
     pedido: 0,        // para ignorar búsquedas viejas
+    ultimaPartida: null, // puntaje pendiente de guardar con iniciales
   };
 
   // ---------- Utilidades ----------
@@ -87,11 +88,76 @@
     };
   }
 
-  function leerRecord() {
-    try { return JSON.parse(localStorage.getItem(CLAVE_RECORD)); } catch { return null; }
+  // ---------- Tabla de puntajes (se guarda en este navegador) ----------
+  // Se ordena por porcentaje de aciertos, así se pueden comparar partidas de 5, 10 o 15 rondas.
+  function leerPuntajes() {
+    try {
+      const lista = JSON.parse(localStorage.getItem(CLAVE_PUNTAJES));
+      return Array.isArray(lista) ? lista : [];
+    } catch { return []; }
   }
-  function guardarRecord(r) {
-    try { localStorage.setItem(CLAVE_RECORD, JSON.stringify(r)); } catch { /* sin almacenamiento */ }
+  function guardarPuntajes(lista) {
+    try { localStorage.setItem(CLAVE_PUNTAJES, JSON.stringify(lista)); } catch { /* sin almacenamiento */ }
+  }
+  const ordenarPuntajes = (lista) =>
+    lista.sort((a, b) => b.pct - a.pct || b.puntos - a.puntos || a.fecha - b.fecha);
+
+  function dibujarTabla(contenedor, cantidad, resaltarId) {
+    const lista = ordenarPuntajes(leerPuntajes()).slice(0, cantidad);
+    contenedor.innerHTML = '';
+    if (!lista.length) {
+      contenedor.innerHTML = '<p class="tabla-vacia">Todavía no hay puntajes. ¡Sé el primero!</p>';
+      return;
+    }
+    const tabla = document.createElement('table');
+    tabla.className = 'tabla-puntajes';
+    tabla.innerHTML = '<thead><tr><th>#</th><th>Jugador</th><th class="num">Puntos</th><th class="num">%</th></tr></thead>';
+    const cuerpo = document.createElement('tbody');
+    lista.forEach((p, i) => {
+      const tr = document.createElement('tr');
+      if (p.id === resaltarId) tr.className = 'nuevo';
+      const celdas = [
+        ['pos', `${i + 1}`],
+        ['ini', p.iniciales],
+        ['num', `${p.puntos} / ${p.max}`],
+        ['num', `${Math.round(p.pct * 100)}%`],
+      ];
+      celdas.forEach(([clase, texto]) => {
+        const td = document.createElement('td');
+        td.className = clase;
+        td.textContent = texto;
+        tr.appendChild(td);
+      });
+      cuerpo.appendChild(tr);
+    });
+    tabla.appendChild(cuerpo);
+    contenedor.appendChild(tabla);
+  }
+
+  function limpiarIniciales(texto) {
+    return texto.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^A-Z0-9]/g, '').slice(0, 3);
+  }
+
+  function guardarIniciales(e) {
+    e.preventDefault();
+    const p = estado.ultimaPartida;
+    const iniciales = limpiarIniciales($('iniciales').value);
+    if (!p || !iniciales) { $('iniciales').focus(); return; }
+
+    const entrada = { id: Date.now(), iniciales, puntos: p.puntos, max: p.max, pct: p.pct, fecha: Date.now() };
+    const lista = ordenarPuntajes([...leerPuntajes(), entrada]).slice(0, 100);
+    guardarPuntajes(lista);
+    estado.ultimaPartida = null; // no se puede guardar dos veces la misma partida
+
+    const puesto = lista.findIndex((x) => x.id === entrada.id) + 1;
+    $('form-iniciales').classList.add('oculto');
+    const msg = $('guardado');
+    msg.textContent = puesto > 0
+      ? `¡Guardado, ${iniciales}! Quedaste en el puesto ${puesto}.`
+      : `¡Guardado, ${iniciales}!`;
+    msg.classList.remove('oculto');
+    dibujarTabla($('tabla-final'), 10, entrada.id);
   }
 
   function mostrarPantalla(id) {
@@ -446,17 +512,21 @@
       lista.appendChild(li);
     });
 
-    const rec = leerRecord();
-    if (max && (!rec || pct > rec.pct)) guardarRecord({ pct, puntos: estado.puntos, max });
+    // Formulario de iniciales (solo si se jugó al menos una ronda)
+    estado.ultimaPartida = max ? { puntos: estado.puntos, max, pct } : null;
+    $('form-iniciales').classList.toggle('oculto', !max);
+    $('guardado').classList.add('oculto');
+    $('iniciales').value = '';
+    dibujarTabla($('tabla-final'), 10);
+
     mostrarPantalla('final');
-    mostrarRecord();
+    if (max) $('iniciales').focus();
   }
 
-  function mostrarRecord() {
-    const rec = leerRecord();
-    $('record').textContent = rec
-      ? `Tu mejor partida: ${rec.puntos} / ${rec.max} puntos (${Math.round(rec.pct * 100)}%)`
-      : '';
+  function mostrarTablaInicio() {
+    const hay = leerPuntajes().length > 0;
+    $('bloque-tabla-inicio').classList.toggle('oculto', !hay);
+    if (hay) dibujarTabla($('tabla-inicio'), 5);
   }
 
   // ---------- Inicio ----------
@@ -489,7 +559,14 @@
   $('btn-siguiente').addEventListener('click', siguiente);
   $('btn-abrir-mapa').addEventListener('click', abrirMapa);
   $('btn-cerrar-mapa').addEventListener('click', cerrarMapa);
-  $('btn-otra').addEventListener('click', () => { mostrarPantalla('inicio'); mostrarRecord(); });
+  $('btn-otra').addEventListener('click', () => { mostrarPantalla('inicio'); mostrarTablaInicio(); });
+  $('form-iniciales').addEventListener('submit', guardarIniciales);
+  $('iniciales').addEventListener('input', (e) => { e.target.value = limpiarIniciales(e.target.value); });
+  $('btn-borrar-puntajes').addEventListener('click', () => {
+    if (!confirm('¿Borrar todos los puntajes guardados en esta computadora?')) return;
+    guardarPuntajes([]);
+    mostrarTablaInicio();
+  });
   // Enter: abre el mapa → confirma → siguiente ronda.  Esc: vuelve a la calle.
   document.addEventListener('keydown', (e) => {
     if (!$('juego').classList.contains('activa')) return;
@@ -500,6 +577,6 @@
     else adivinar();
   });
 
-  mostrarRecord();
+  mostrarTablaInicio();
   prepararInicio();
 })();
